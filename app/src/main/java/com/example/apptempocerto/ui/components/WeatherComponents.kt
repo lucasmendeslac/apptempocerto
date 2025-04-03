@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +52,7 @@ import java.util.TimeZone
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.platform.LocalContext
+import java.util.Calendar
 
 
 @Composable
@@ -91,17 +94,17 @@ fun traduzirCondicao(condicao: String): String {
     return when (condicao.lowercase()) {
         "clear" -> "Céu Limpo"
         "sunny" -> "Ensolarado"
-        "partly cloudy" -> "Parcialmente Nublado"
+        "partly cloudy" -> "Pouco Nublado"
         "cloudy" -> "Nublado"
         "overcast" -> "Encoberto"
         "mist" -> "Névoa"
         "fog" -> "Neblina"
         "freezing fog" -> "Neblina Congelante"
-        "patchy rain possible" -> "Possibilidade de Chuva Irregular"
-        "patchy snow possible" -> "Possibilidade de Neve Irregular"
-        "patchy sleet possible" -> "Possibilidade de Granizo Irregular"
-        "patchy freezing drizzle possible" -> "Possibilidade de Garoa Congelante Irregular"
-        "thundery outbreaks possible" -> "Possibilidade de Trovoadas"
+        "patchy rain possible" -> "Possível Chuva"
+        "patchy snow possible" -> "Possível Neve"
+        "patchy sleet possible" -> "Possível Granizo"
+        "patchy freezing drizzle possible" -> "Possível Garoa Gelada"
+        "thundery outbreaks possible" -> "Possíveis Trovoadas"
         "blowing snow" -> "Neve com Vento"
         "blizzard" -> "Nevasca"
         "rain" -> "Chuva"
@@ -110,18 +113,18 @@ fun traduzirCondicao(condicao: String): String {
         "freezing rain" -> "Chuva Congelante"
         "light rain" -> "Chuva Leve"
         "light drizzle" -> "Garoa Leve"
-        "moderate or heavy rain with thunder" -> "Chuva Moderada ou Forte com Trovoadas"
-        "patchy light rain with thunder" -> "Chuva Leve Irregular com Trovoadas"
-        "moderate or heavy showers of ice pellets" -> "Chuva Moderada ou Forte de Granizo"
-        "light showers of ice pellets" -> "Chuva Leve de Granizo"
-        "moderate or heavy snow with thunder" -> "Neve Moderada ou Forte com Trovoadas"
-        "patchy light snow with thunder" -> "Neve Leve Irregular com Trovoadas"
-        "patchy light rain" -> "Chuva Leve Irregular"
-        "patchy moderate rain" -> "Chuva Moderada Irregular"
-        "patchy heavy rain" -> "Chuva Forte Irregular"
-        "patchy light snow" -> "Neve Leve Irregular"
-        "patchy moderate snow" -> "Neve Moderada Irregular"
-        "patchy heavy snow" -> "Neve Forte Irregular"
+        "moderate or heavy rain with thunder" -> "Chuva com Trovoadas"
+        "patchy light rain with thunder" -> "Chuva Leve com Trovoadas"
+        "moderate or heavy showers of ice pellets" -> "Granizo Forte"
+        "light showers of ice pellets" -> "Granizo Leve"
+        "moderate or heavy snow with thunder" -> "Neve com Trovoadas"
+        "patchy light snow with thunder" -> "Neve Leve com Trovoadas"
+        "patchy light rain" -> "Chuva Leve Isolada"
+        "patchy moderate rain" -> "Chuva Moderada Isolada"
+        "patchy heavy rain" -> "Chuva Forte Isolada"
+        "patchy light snow" -> "Neve Leve Isolada"
+        "patchy moderate snow" -> "Neve Moderada Isolada"
+        "patchy heavy snow" -> "Neve Forte Isolada"
         else -> condicao
     }
 }
@@ -156,110 +159,142 @@ fun CurrentWeatherCard(
             .padding(16.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Gradiente de fundo baseado na condição climática
+        val gradientColors = getGradientColorsForCondition(condition.text)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = gradientColors
+                    )
+                )
         ) {
-            Text(
-                text = location,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = date,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AsyncImage(
-                    model = "https:${condition.icon}",
-                    contentDescription = condition.text,
-                    modifier = Modifier.size(80.dp)
-                )
-                
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "${temperature.toInt()}°C",
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = traduzirCondicao(condition.text),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            Divider()
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                WeatherInfoItem(
-                    icon = R.drawable.ic_temperature,
-                    label = "Sensação",
-                    value = "${feelsLike.toInt()}°C"
-                )
-                
-                WeatherInfoItem(
-                    icon = R.drawable.ic_humidity,
-                    label = "Umidade",
-                    value = "$humidity%"
-                )
-                
-                WeatherInfoItem(
-                    icon = R.drawable.ic_uv,
-                    label = "UV",
-                    value = uvIndex.toString()
-                )
-            }
-            
-            if (airQuality != null) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(16.dp))
-                
                 Text(
-                    text = "Qualidade do Ar",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                val qualidadeDoAr = avaliarQualidadeDoAr(airQuality.us_epa_index)
-                Text(
-                    text = qualidadeDoAr.first,
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = location,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = qualidadeDoAr.second
+                    color = Color.White
+                )
+                Text(
+                    text = date,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.8f)
                 )
                 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    AsyncImage(
+                        model = "https:${condition.icon}",
+                        contentDescription = condition.text,
+                        modifier = Modifier.size(80.dp)
+                    )
+                    
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "${temperature.toInt()}°C",
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = traduzirCondicao(condition.text),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                Divider(color = Color.White.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    AirQualityInfoItem(label = "PM2.5", value = String.format("%.1f", airQuality.pm2_5))
-                    AirQualityInfoItem(label = "PM10", value = String.format("%.1f", airQuality.pm10))
-                    AirQualityInfoItem(label = "CO", value = String.format("%.1f", airQuality.co))
-                    AirQualityInfoItem(label = "NO2", value = String.format("%.1f", airQuality.no2))
+                    WeatherInfoItem(
+                        icon = R.drawable.ic_temperature,
+                        label = "Sensação",
+                        value = "${feelsLike.toInt()}°C",
+                        tintColor = Color.White
+                    )
+                    
+                    WeatherInfoItem(
+                        icon = R.drawable.ic_humidity,
+                        label = "Umidade",
+                        value = "$humidity%",
+                        tintColor = Color.White
+                    )
+                    
+                    WeatherInfoItem(
+                        icon = R.drawable.ic_uv,
+                        label = "UV",
+                        value = uvIndex.toString(),
+                        tintColor = Color.White
+                    )
+                }
+                
+                if (airQuality != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.White.copy(alpha = 0.3f))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Qualidade do Ar",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    val qualidadeDoAr = avaliarQualidadeDoAr(airQuality.us_epa_index)
+                    Text(
+                        text = qualidadeDoAr.first,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = qualidadeDoAr.second
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        AirQualityInfoItem(
+                            label = "PM2.5", 
+                            value = String.format("%.1f", airQuality.pm2_5),
+                            textColor = Color.White
+                        )
+                        AirQualityInfoItem(
+                            label = "PM10", 
+                            value = String.format("%.1f", airQuality.pm10),
+                            textColor = Color.White
+                        )
+                        AirQualityInfoItem(
+                            label = "CO", 
+                            value = String.format("%.1f", airQuality.co),
+                            textColor = Color.White
+                        )
+                        AirQualityInfoItem(
+                            label = "NO2", 
+                            value = String.format("%.1f", airQuality.no2),
+                            textColor = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -271,6 +306,7 @@ fun WeatherInfoItem(
     icon: Int,
     label: String,
     value: String,
+    tintColor: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -280,19 +316,20 @@ fun WeatherInfoItem(
         Icon(
             painter = painterResource(id = icon),
             contentDescription = label,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = tintColor,
             modifier = Modifier.size(24.dp)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            color = tintColor.copy(alpha = 0.7f)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = tintColor
         )
     }
 }
@@ -301,6 +338,7 @@ fun WeatherInfoItem(
 fun AirQualityInfoItem(
     label: String,
     value: String,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -310,12 +348,13 @@ fun AirQualityInfoItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            color = textColor.copy(alpha = 0.7f)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = textColor
         )
     }
 }
@@ -323,6 +362,7 @@ fun AirQualityInfoItem(
 @Composable
 fun HourlyForecastCard(
     hours: List<Hour>,
+    timezone: TimeZone = TimeZone.getDefault(),
     modifier: Modifier = Modifier
 ) {
     // Vamos exibir o card mesmo se não houver horas disponíveis
@@ -333,88 +373,103 @@ fun HourlyForecastCard(
             .height(280.dp), // altura fixa para garantir visibilidade
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(8.dp), // Aumentar sombra para destacar
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f) // Fundo mais distinto
-        )
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
+        // Gradiente de fundo para o card de previsão horária
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        )
+                    )
+                )
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                Text(
-                    text = "PREVISÃO POR HORA",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.weight(1f)
-                )
-                
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_time),
-                    contentDescription = "Previsão Horária",
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            
-            Divider(
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f),
-                thickness = 1.dp,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            if (hours.isEmpty()) {
-                // Exibir uma mensagem ou um estado vazio quando não houver dados
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_time),
-                            contentDescription = "Sem dados",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
-                            modifier = Modifier.size(40.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        Text(
-                            text = "Nenhuma previsão disponível",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        )
-                    }
+                    Text(
+                        text = "PREVISÃO POR HORA",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.weight(1f)
+                    )
+                    
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_time),
+                        contentDescription = "Previsão Horária",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-            } else {
-                // Exibir as horas disponíveis
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp),
-                    userScrollEnabled = true
-                ) {
-                    items(hours) { hour ->
-                        Card(
-                            modifier = Modifier
-                                .width(110.dp)
-                                .height(180.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
+                
+                Divider(
+                    color = Color.White.copy(alpha = 0.3f),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                if (hours.isEmpty()) {
+                    // Exibir uma mensagem ou um estado vazio quando não houver dados
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            HourForecastItem(hour = hour)
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_time),
+                                contentDescription = "Sem dados",
+                                tint = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Text(
+                                text = "Nenhuma previsão disponível",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                } else {
+                    // Exibir as horas disponíveis
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        userScrollEnabled = true
+                    ) {
+                        items(hours) { hour ->
+                            Card(
+                                modifier = Modifier
+                                    .width(110.dp)
+                                    .height(180.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                elevation = CardDefaults.cardElevation(4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                                )
+                            ) {
+                                HourForecastItem(
+                                    hour = hour,
+                                    timezone = timezone
+                                )
+                            }
                         }
                     }
                 }
@@ -424,18 +479,47 @@ fun HourlyForecastCard(
 }
 
 @Composable
-fun HourForecastItem(hour: Hour, modifier: Modifier = Modifier) {
+fun HourForecastItem(
+    hour: Hour, 
+    timezone: TimeZone = TimeZone.getDefault(),
+    modifier: Modifier = Modifier
+) {
+    // Obter o calendário da hora da previsão usando o timestamp da previsão com o fuso horário correto
+    val forecastCalendar = Calendar.getInstance(timezone)
+    forecastCalendar.timeInMillis = hour.time_epoch * 1000
+    
+    // Formatação de hora - usar Locale específico para o idioma português
+    val timeFormat = SimpleDateFormat("HH:mm", Locale("pt", "BR"))
+    timeFormat.timeZone = timezone
+    val formattedTime = timeFormat.format(forecastCalendar.time)
+    
+    // Verificar se é um dia diferente do atual
+    val currentCalendar = Calendar.getInstance(timezone)
+    val currentDay = currentCalendar.get(Calendar.DAY_OF_MONTH)
+    val forecastDay = forecastCalendar.get(Calendar.DAY_OF_MONTH)
+    val isDifferentDay = currentDay != forecastDay
+    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .padding(horizontal = 8.dp, vertical = 8.dp)
             .width(100.dp)
     ) {
-        // Formatação da hora (apenas a hora, sem a data)
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-        val date = Date(hour.time_epoch * 1000)
-        val formattedTime = timeFormat.format(date)
+        // Se for um dia diferente, mostrar o nome do dia também
+        if (isDifferentDay) {
+            val dayFormat = SimpleDateFormat("EEE", Locale("pt", "BR"))
+            dayFormat.timeZone = timezone
+            val dayOfWeek = dayFormat.format(forecastCalendar.time)
+            
+            Text(
+                text = dayOfWeek,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp
+            )
+        }
         
+        // Hora
         Text(
             text = formattedTime,
             style = MaterialTheme.typography.bodyMedium,
@@ -505,55 +589,93 @@ fun HourForecastItem(hour: Hour, modifier: Modifier = Modifier) {
 private fun translateCondition(condition: String): String {
     return when (condition.lowercase()) {
         "sunny" -> "Ensolarado"
-        "partly cloudy" -> "Parcialmente nublado"
+        "partly cloudy" -> "Pouco Nublado"
         "cloudy" -> "Nublado"
         "overcast" -> "Encoberto"
         "mist" -> "Névoa"
-        "patchy rain possible" -> "Possível chuva isolada"
-        "patchy snow possible" -> "Possível neve isolada"
-        "patchy sleet possible" -> "Possível granizo isolado"
-        "patchy freezing drizzle possible" -> "Possível garoa congelante"
-        "thundery outbreaks possible" -> "Possíveis trovoadas"
-        "blowing snow" -> "Rajadas de neve"
+        "patchy rain possible" -> "Possível Chuva"
+        "patchy snow possible" -> "Possível Neve"
+        "patchy sleet possible" -> "Possível Granizo"
+        "patchy freezing drizzle possible" -> "Possível Garoa Gelada"
+        "thundery outbreaks possible" -> "Possíveis Trovoadas"
+        "blowing snow" -> "Rajadas de Neve"
         "blizzard" -> "Nevasca"
         "fog" -> "Nevoeiro"
-        "freezing fog" -> "Nevoeiro congelante"
-        "patchy light drizzle" -> "Garoa leve isolada"
-        "light drizzle" -> "Garoa leve"
-        "freezing drizzle" -> "Garoa congelante"
-        "heavy freezing drizzle" -> "Garoa congelante forte"
-        "patchy light rain" -> "Chuva leve isolada"
-        "light rain" -> "Chuva leve"
-        "moderate rain at times" -> "Chuva moderada às vezes"
-        "moderate rain" -> "Chuva moderada"
-        "heavy rain at times" -> "Chuva forte às vezes"
-        "heavy rain" -> "Chuva forte"
-        "light freezing rain" -> "Chuva congelante leve"
-        "moderate or heavy freezing rain" -> "Chuva congelante moderada a forte"
-        "light sleet" -> "Granizo leve"
-        "moderate or heavy sleet" -> "Granizo moderado a forte"
-        "patchy light snow" -> "Neve leve isolada"
-        "light snow" -> "Neve leve"
-        "patchy moderate snow" -> "Neve moderada isolada"
-        "moderate snow" -> "Neve moderada"
-        "patchy heavy snow" -> "Neve forte isolada"
-        "heavy snow" -> "Neve forte"
-        "ice pellets" -> "Pelotas de gelo"
-        "light rain shower" -> "Pancada de chuva leve"
-        "moderate or heavy rain shower" -> "Pancada de chuva moderada a forte"
-        "torrential rain shower" -> "Pancada de chuva torrencial"
-        "light sleet showers" -> "Pancada de granizo leve"
-        "moderate or heavy sleet showers" -> "Pancada de granizo moderada a forte"
-        "light snow showers" -> "Pancada de neve leve"
-        "moderate or heavy snow showers" -> "Pancada de neve moderada a forte"
-        "light showers of ice pellets" -> "Pancada leve de pelotas de gelo"
-        "moderate or heavy showers of ice pellets" -> "Pancada moderada a forte de pelotas de gelo"
-        "patchy light rain with thunder" -> "Chuva leve isolada com trovoadas"
-        "moderate or heavy rain with thunder" -> "Chuva moderada a forte com trovoadas"
-        "patchy light snow with thunder" -> "Neve leve isolada com trovoadas"
-        "moderate or heavy snow with thunder" -> "Neve moderada a forte com trovoadas"
-        "clear" -> "Céu limpo"
+        "freezing fog" -> "Nevoeiro Congelante"
+        "patchy light drizzle" -> "Garoa Leve"
+        "light drizzle" -> "Garoa Leve"
+        "freezing drizzle" -> "Garoa Congelante"
+        "heavy freezing drizzle" -> "Garoa Congelante Forte"
+        "patchy light rain" -> "Chuva Leve"
+        "light rain" -> "Chuva Leve"
+        "moderate rain at times" -> "Chuva Moderada"
+        "moderate rain" -> "Chuva Moderada"
+        "heavy rain at times" -> "Chuva Forte"
+        "heavy rain" -> "Chuva Forte"
+        "light freezing rain" -> "Chuva Congelante"
+        "moderate or heavy freezing rain" -> "Chuva Congelante Forte"
+        "light sleet" -> "Granizo Leve"
+        "moderate or heavy sleet" -> "Granizo Forte"
+        "patchy light snow" -> "Neve Leve"
+        "light snow" -> "Neve Leve"
+        "patchy moderate snow" -> "Neve Moderada"
+        "moderate snow" -> "Neve Moderada"
+        "patchy heavy snow" -> "Neve Forte"
+        "heavy snow" -> "Neve Forte"
+        "ice pellets" -> "Pelotas de Gelo"
+        "light rain shower" -> "Pancada de Chuva"
+        "moderate or heavy rain shower" -> "Pancada de Chuva Forte"
+        "torrential rain shower" -> "Chuva Torrencial"
+        "light sleet showers" -> "Granizo Leve"
+        "moderate or heavy sleet showers" -> "Granizo Forte"
+        "light snow showers" -> "Neve Leve"
+        "moderate or heavy snow showers" -> "Neve Forte"
+        "light showers of ice pellets" -> "Granizo Leve"
+        "moderate or heavy showers of ice pellets" -> "Granizo Forte"
+        "patchy light rain with thunder" -> "Chuva com Trovões"
+        "moderate or heavy rain with thunder" -> "Chuva Forte com Trovões"
+        "patchy light snow with thunder" -> "Neve com Trovões"
+        "moderate or heavy snow with thunder" -> "Neve Forte com Trovões"
+        "clear" -> "Céu Limpo"
         else -> condition
+    }
+}
+
+// Função para obter cores de gradiente com base na condição climática
+fun getGradientColorsForCondition(condition: String): List<Color> {
+    return when (condition.lowercase()) {
+        "sunny", "clear" -> listOf(
+            Color(0xFF4A90E2), // Azul claro
+            Color(0xFF1E3C72)  // Azul escuro
+        )
+        "partly cloudy" -> listOf(
+            Color(0xFF5C6BC0), // Azul médio
+            Color(0xFF3949AB)  // Azul índigo
+        )
+        "cloudy", "overcast" -> listOf(
+            Color(0xFF78909C), // Azul acinzentado
+            Color(0xFF455A64)  // Azul acinzentado escuro
+        )
+        "rain", "light rain", "moderate rain", "heavy rain", "patchy rain possible" -> listOf(
+            Color(0xFF1A237E), // Azul escuro
+            Color(0xFF0D47A1)  // Azul muito escuro
+        )
+        "snow", "patchy snow possible", "blizzard", "blowing snow" -> listOf(
+            Color(0xFF90CAF9), // Azul muito claro
+            Color(0xFF42A5F5)  // Azul claro
+        )
+        "thundery outbreaks possible", "moderate or heavy rain with thunder" -> listOf(
+            Color(0xFF303F9F), // Índigo escuro
+            Color(0xFF1A237E)  // Índigo muito escuro
+        )
+        "fog", "mist", "freezing fog" -> listOf(
+            Color(0xFF78909C), // Cinza azulado
+            Color(0xFF546E7A)  // Cinza azulado escuro
+        )
+        else -> listOf(
+            Color(0xFF4A90E2), // Azul claro (padrão)
+            Color(0xFF1E3C72)  // Azul escuro (padrão)
+        )
     }
 }
 
@@ -606,9 +728,39 @@ fun DailyForecastItem(
     timezone: TimeZone = TimeZone.getDefault(),
     modifier: Modifier = Modifier
 ) {
-    val dateFormatter = SimpleDateFormat("EEE, dd/MM", Locale("pt", "BR"))
-    dateFormatter.timeZone = timezone
-    val date = dateFormatter.format(Date(forecastDay.date_epoch * 1000))
+    // Imprimir informações para debug
+    println("DEBUG: Data do forecast: ${forecastDay.date}, Epoch: ${forecastDay.date_epoch}, Timezone: ${timezone.id}")
+    
+    // Converter a data do forecast para o fuso horário correto
+    val inputFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val outputFormatter = SimpleDateFormat("EEE, dd/MM", Locale("pt", "BR"))
+    
+    // Configurar os fusos horários para ambos formatadores
+    inputFormatter.timeZone = timezone
+    outputFormatter.timeZone = timezone
+    
+    // Formatar a data
+    val date = try {
+        // Criar uma instância de Calendar no fuso horário correto
+        val calendar = java.util.Calendar.getInstance(timezone)
+        // Configurar a data a partir da string de data do forecastDay
+        val parsedDate = inputFormatter.parse(forecastDay.date)
+        calendar.time = parsedDate
+        
+        // Verificar se o dia foi parseado corretamente
+        val day = calendar.get(java.util.Calendar.DAY_OF_MONTH)
+        val month = calendar.get(java.util.Calendar.MONTH) + 1 // mês começa em 0
+        
+        println("DEBUG: Data parseada do forecast: Dia $day, Mês $month")
+        
+        // Formatar a data para exibição
+        outputFormatter.format(calendar.time)
+    } catch (e: Exception) {
+        println("DEBUG: Erro ao converter data do forecast: ${e.message}")
+        // Fallback: usar o epoch time que é mais confiável
+        val fallbackDate = Date(forecastDay.date_epoch * 1000)
+        outputFormatter.format(fallbackDate)
+    }
     
     Row(
         modifier = modifier

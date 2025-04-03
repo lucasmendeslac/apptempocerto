@@ -226,11 +226,32 @@ fun HomeScreen(
                         
                         // Obter o fuso horário a partir do tz_id fornecido pela API
                         val timezone = TimeZone.getTimeZone(currentWeather.location.tz_id)
-                        val dateFormatter = SimpleDateFormat("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
-                        dateFormatter.timeZone = timezone  // Configurar o timezone correto
                         
-                        // Usar o timestamp localtime_epoch para criar a data correta
-                        val date = dateFormatter.format(Date(currentWeather.location.localtime_epoch * 1000))
+                        // Usar a string de data localizada diretamente da API
+                        // Isto já contém o fuso horário correto para a localização
+                        val localDate = currentWeather.location.localtime
+                        
+                        // Mostrar o fuso horário para debug
+                        println("DEBUG: Timezone na API: ${currentWeather.location.tz_id}, Data local: ${localDate}")
+                        
+                        // Formatar a data para exibição em português
+                        val apiDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                        apiDateFormat.timeZone = timezone
+                        
+                        val dateFormatter = SimpleDateFormat("EEEE, dd 'de' MMMM", Locale("pt", "BR"))
+                        dateFormatter.timeZone = timezone
+                        
+                        // Converter a string de data da API para Date e então formatar em português
+                        val date = try {
+                            val parsedDate = apiDateFormat.parse(localDate)
+                            // Log da data parseada para depuração
+                            println("DEBUG: Data original: $localDate, Data parseada (epoch): ${parsedDate?.time}, Data formatada: ${dateFormatter.format(parsedDate)}")
+                            dateFormatter.format(parsedDate)
+                        } catch (e: Exception) {
+                            println("DEBUG: Erro ao analisar data: ${e.message}")
+                            // Fallback: usar timestamp para formato
+                            dateFormatter.format(Date(currentWeather.location.localtime_epoch * 1000))
+                        }
                         
                         Column(
                             modifier = Modifier
@@ -281,21 +302,29 @@ fun HomeScreen(
                                         val cal = java.util.Calendar.getInstance(timezone)
                                         cal.time = Date(currentWeather.location.localtime_epoch * 1000)
                                         val currentHour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+                                        val currentMinute = cal.get(java.util.Calendar.MINUTE)
                                         
-                                        println("DEBUG: Hora atual: $currentHour, Total de horas no primeiro dia: ${firstDay.hour.size}")
+                                        // Adicionar log para debug de timezone
+                                        println("DEBUG: Hora atual no fuso ${timezone.id}: $currentHour:$currentMinute, Timestamp: ${currentWeather.location.localtime_epoch}")
                                         
                                         // Obter as horas futuras do primeiro dia
                                         var upcomingHours = firstDay.hour.filter {
-                                            val timeParser = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                                            timeParser.timeZone = timezone
-                                            
-                                            val hourTime = timeParser.parse(it.time)?.let { date ->
+                                            try {
+                                                // Criar um calendário baseado no timestamp da API com o fuso horário correto
+                                                val apiCal = java.util.Calendar.getInstance(timezone)
+                                                apiCal.time = Date(currentWeather.location.localtime_epoch * 1000)
+
+                                                // Criar um calendário para a hora a ser verificada no mesmo fuso horário
                                                 val hourCal = java.util.Calendar.getInstance(timezone)
-                                                hourCal.time = date
-                                                hourCal.get(java.util.Calendar.HOUR_OF_DAY)
-                                            } ?: 0
-                                            
-                                            hourTime >= currentHour
+                                                hourCal.timeInMillis = it.time_epoch * 1000
+
+                                                // Verificar se a hora é futura ou atual em relação ao horário local da localização
+                                                hourCal.timeInMillis >= apiCal.timeInMillis
+                                            } catch (e: Exception) {
+                                                println("DEBUG: Erro ao comparar horas: ${e.message}")
+                                                // Fallback: usar timestamp simples
+                                                it.time_epoch >= currentWeather.location.localtime_epoch
+                                            }
                                         }
                                         
                                         println("DEBUG: Horas futuras encontradas: ${upcomingHours.size}")
@@ -308,6 +337,17 @@ fun HomeScreen(
                                             // Pegamos apenas as horas necessárias do próximo dia
                                             val hoursNeeded = 6 - upcomingHours.size
                                             val nextDayHours = nextDay.hour.take(hoursNeeded)
+                                            
+                                            // Adicionar log para verificar as horas do próximo dia
+                                            nextDayHours.forEach { hour ->
+                                                // Obter o calendário da hora da previsão para confirmar o fuso horário
+                                                val hourCal = java.util.Calendar.getInstance(timezone)
+                                                hourCal.timeInMillis = hour.time_epoch * 1000
+                                                val hourStr = hourCal.get(java.util.Calendar.HOUR_OF_DAY)
+                                                val minuteStr = hourCal.get(java.util.Calendar.MINUTE)
+                                                
+                                                println("DEBUG: Próximo dia - hora: ${hour.time}, hora formatada: $hourStr:$minuteStr, epoch: ${hour.time_epoch}")
+                                            }
                                             
                                             upcomingHours = upcomingHours + nextDayHours
                                             println("DEBUG: Após adicionar horas do segundo dia: ${upcomingHours.size}")
@@ -324,7 +364,8 @@ fun HomeScreen(
                                 
                                 // Sempre exibir o card, mesmo que a lista esteja vazia
                                 HourlyForecastCard(
-                                    hours = if (hoursToDisplay.isEmpty()) createPlaceholderHourlyData() else hoursToDisplay,
+                                    hours = if (hoursToDisplay.isEmpty()) createPlaceholderHourlyData(timezone) else hoursToDisplay,
+                                    timezone = timezone,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -366,13 +407,25 @@ fun HomeScreen(
 }
 
 // Função auxiliar para criar dados de exemplo para previsão horária
-private fun createPlaceholderHourlyData(): List<Hour> {
-    val currentTime = System.currentTimeMillis()
+private fun createPlaceholderHourlyData(timezone: TimeZone = TimeZone.getDefault()): List<Hour> {
+    // Obter o tempo atual no fuso horário especificado
+    val calendar = java.util.Calendar.getInstance(timezone)
+    
+    // Ajustar para o início da hora atual
+    calendar.set(java.util.Calendar.MINUTE, 0)
+    calendar.set(java.util.Calendar.SECOND, 0)
+    calendar.set(java.util.Calendar.MILLISECOND, 0)
+    
+    val currentTime = calendar.timeInMillis
     val oneHourMillis = 60 * 60 * 1000L
     
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    dateFormat.timeZone = timezone
+    
     return List(6) { index ->
+        // Começar com a hora atual e adicionar 1 hora por elemento
         val timeEpoch = currentTime + (index * oneHourMillis)
-        val timeString = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(timeEpoch))
+        val timeString = dateFormat.format(Date(timeEpoch))
         
         Hour(
             time_epoch = timeEpoch / 1000,
